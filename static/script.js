@@ -1,76 +1,120 @@
-// Helper to safely escape text before placing it inside HTML
+// Stores the latest queue list so live search works without losing data on auto-refresh
+let currentQueue = [];
+
+// Safely escape text before placing it inside HTML
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = String(text ?? '');
     return div.innerHTML;
 }
 
-// 1. Load Live Statistics (GET /api/stats)
+// Removes "YYYY-MM-DD " so only the clock time (e.g. "03:45:10 PM") is shown
+function formatTimeOnly(dateTimeStr) {
+    return String(dateTimeStr ?? '').replace(/^\d{4}-\d{2}-\d{2}\s+/, '');
+}
+
+// Display today's date once in the top-right corner
+function showTodayDate() {
+    const today = new Date().toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+    });
+    document.getElementById('today-date').textContent = today;
+}
+
+// 1. Load Live Dashboard Stats (GET /api/stats)
 async function loadStats() {
     try {
         const res = await fetch('/api/stats');
         const stats = await res.json();
 
         const servingText = stats.currently_serving
-            ? `Token #${stats.currently_serving.token_number} (${stats.currently_serving.name})`
+            ? `Token #${stats.currently_serving.token_number} - ${stats.currently_serving.name}`
             : 'None';
 
         document.getElementById('stat-serving').textContent = servingText;
         document.getElementById('stat-waiting').textContent = stats.waiting_count;
         document.getElementById('stat-served').textContent = stats.served_count;
         document.getElementById('stat-cancelled').textContent = stats.cancelled_count;
-        document.getElementById('stat-avg-wait').textContent = stats.average_wait_seconds;
     } catch (err) {
         console.error('Failed to load stats:', err);
     }
 }
 
-// 2. Load Waiting Queue Table (GET /api/queue)
+// 2. Fetch Waiting Queue from Backend (GET /api/queue)
 async function loadQueue() {
     try {
         const res = await fetch('/api/queue');
         const data = await res.json();
-
-        const countEl = document.getElementById('queue-count');
-        const emptyMsg = document.getElementById('empty-queue-msg');
-        const table = document.getElementById('queue-table');
-        const tbody = document.getElementById('queue-tbody');
-
-        countEl.textContent = data.count;
-        tbody.innerHTML = '';
-
-        if (data.count === 0) {
-            emptyMsg.hidden = false;
-            table.hidden = true;
-            return;
-        }
-
-        emptyMsg.hidden = true;
-        table.hidden = false;
-
-        data.queue.forEach((patient, index) => {
-            const tokenNum = patient['Token Number'];
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${index + 1}</td>
-                <td><strong>#${escapeHtml(tokenNum)}</strong></td>
-                <td>${escapeHtml(patient['Name'])}</td>
-                <td>${escapeHtml(patient['Age'])}</td>
-                <td>${escapeHtml(patient['Gender'])}</td>
-                <td>${escapeHtml(patient['Ailment'])}</td>
-                <td>${escapeHtml(patient['Time of entry'])}</td>
-                <td>
-                    <button type="button" onclick="cancelToken(${Number(tokenNum)})">Cancel</button>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
+        currentQueue = data.queue || [];
+        document.getElementById('queue-count').textContent = data.count;
+        renderQueueTable();
     } catch (err) {
         console.error('Failed to load queue:', err);
     }
 }
 
-// Refresh both dashboard stats and queue table together
+// Render (and filter) the Waiting Queue Table
+function renderQueueTable() {
+    const query = document.getElementById('queue-search').value.trim().toLowerCase();
+    const emptyMsg = document.getElementById('empty-queue-msg');
+    const table = document.getElementById('queue-table');
+    const tbody = document.getElementById('queue-tbody');
+
+    tbody.innerHTML = '';
+
+    if (currentQueue.length === 0) {
+        emptyMsg.textContent = 'The queue is currently empty.';
+        emptyMsg.hidden = false;
+        table.hidden = true;
+        return;
+    }
+
+    // Keep each patient's real queue position even when filtered by search
+    const filtered = currentQueue
+        .map((patient, index) => ({ ...patient, _pos: index + 1 }))
+        .filter((p) => {
+            if (!query) return true;
+            const nameMatch = String(p['Name']).toLowerCase().includes(query);
+            const tokenMatch = String(p['Token Number']).includes(query);
+            return nameMatch || tokenMatch;
+        });
+
+    if (filtered.length === 0) {
+        emptyMsg.textContent = 'No matching patients found.';
+        emptyMsg.hidden = false;
+        table.hidden = true;
+        return;
+    }
+
+    emptyMsg.hidden = true;
+    table.hidden = false;
+
+    filtered.forEach((patient) => {
+        const tokenNum = patient['Token Number'];
+        const isEmergency = String(patient['Ailment']).startsWith('[EMERGENCY]');
+        const tr = document.createElement('tr');
+        if (isEmergency) {
+            tr.className = 'emergency-row';
+        }
+
+        tr.innerHTML = `
+            <td>${patient._pos}</td>
+            <td><strong>#${escapeHtml(tokenNum)}</strong></td>
+            <td>${escapeHtml(patient['Name'])}</td>
+            <td>${escapeHtml(patient['Age'])}</td>
+            <td>${escapeHtml(patient['Gender'])}</td>
+            <td>${escapeHtml(patient['Ailment'])}</td>
+            <td>${escapeHtml(formatTimeOnly(patient['Time of entry']))}</td>
+            <td>
+                <button type="button" class="btn-row-cancel" onclick="cancelToken(${Number(tokenNum)})">Cancel</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
 async function refreshAll() {
     await Promise.all([loadStats(), loadQueue()]);
 }
@@ -108,7 +152,7 @@ async function addPatient(isEmergency) {
 
         const d = result.data;
         const typeLabel = isEmergency ? 'EMERGENCY Token' : 'Token';
-        feedback.textContent = `${typeLabel} #${d.token_number} issued to ${d.name} (Position: ${d.position_in_queue}, Entry: ${d.time_of_entry}).`;
+        feedback.textContent = `${typeLabel} #${d.token_number} issued to ${d.name} (Position: ${d.position_in_queue}, Time: ${formatTimeOnly(d.time_of_entry)}).`;
         form.reset();
         await refreshAll();
     } catch (err) {
@@ -134,7 +178,7 @@ async function callNextPatient() {
         resultDiv.innerHTML = `
             <p>
                 <strong>Now Serving:</strong> Token #${escapeHtml(p.token_number)} - ${escapeHtml(p.name)}<br>
-                <strong>Called At:</strong> ${escapeHtml(p.exit_time)}<br>
+                <strong>Called At:</strong> ${escapeHtml(formatTimeOnly(p.exit_time))}<br>
                 <strong>Wait Duration:</strong> ${escapeHtml(p.duration_minutes)} min ${escapeHtml(p.duration_seconds)} sec
             </p>
         `;
@@ -163,7 +207,6 @@ async function checkTokenStatus() {
 
         if (data.status === 'Waiting') {
             html += `<strong>Queue Position:</strong> ${escapeHtml(data.position_in_queue)} (${escapeHtml(data.people_ahead)} ahead)<br>`;
-            html += `<strong>Estimated Wait:</strong> ~${escapeHtml(data.estimated_wait_mins)} min(s)<br>`;
         }
 
         html += `<strong>Currently Serving:</strong> ${escapeHtml(servingNow)}</p>`;
@@ -175,6 +218,10 @@ async function checkTokenStatus() {
 
 // 6. Cancel a Waiting Token (DELETE /api/token/<token_number>)
 async function cancelToken(tokenNumber) {
+    if (!confirm(`Cancel Token #${tokenNumber}?`)) {
+        return;
+    }
+
     const resultDiv = document.getElementById('status-result');
 
     try {
@@ -206,8 +253,8 @@ function cancelTokenFromInput() {
     cancelToken(tokenInput);
 }
 
-// Load data on page open, auto-refresh every 5s, and support Enter key in token search
 document.addEventListener('DOMContentLoaded', () => {
+    showTodayDate();
     refreshAll();
     setInterval(refreshAll, 5000);
 

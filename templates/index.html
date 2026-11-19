@@ -3,89 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Queue &amp; Token Management System</title>
+    <title>Reception Desk - Queue &amp; Token System</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Queue &amp; Token Management System</h1>
-    <button type="button" onclick="refreshAll()">Refresh Data</button>
+    <div class="top-bar">
+        <div>
+            <h1>Queue &amp; Token Management System</h1>
+            <p class="subtitle">Reception Desk Portal</p>
+        </div>
+        <div class="top-actions">
+            <span id="today-date"></span>
+            <button type="button" class="btn-secondary" onclick="refreshAll()">Refresh</button>
+        </div>
+    </div>
     <hr>
 
-    <!-- 1. LIVE STATS & CURRENTLY SERVING -->
+    <!-- 1. LIVE DASHBOARD -->
     <fieldset>
         <legend><strong>Live Queue Dashboard</strong></legend>
-        <p><strong>Currently Serving:</strong> <span id="stat-serving">None</span></p>
-        <ul>
-            <li>Waiting in Queue: <strong id="stat-waiting">0</strong></li>
-            <li>Total Served: <strong id="stat-served">0</strong></li>
-            <li>Total Cancelled: <strong id="stat-cancelled">0</strong></li>
-            <li>Average Wait Time: <strong id="stat-avg-wait">0</strong> seconds</li>
-        </ul>
+        <p class="serving-line">
+            <strong>Currently Serving:</strong>
+            <span id="stat-serving">None</span>
+        </p>
+        <div class="stats-row">
+            <div class="stat-box">
+                <span>Waiting</span>
+                <strong id="stat-waiting">0</strong>
+            </div>
+            <div class="stat-box">
+                <span>Served</span>
+                <strong id="stat-served">0</strong>
+            </div>
+            <div class="stat-box">
+                <span>Cancelled</span>
+                <strong id="stat-cancelled">0</strong>
+            </div>
+        </div>
     </fieldset>
 
-    <!-- 2. ISSUE NEW TOKEN (NORMAL OR EMERGENCY) -->
+    <!-- 2. COUNTER CONTROLS -->
     <fieldset>
-        <legend><strong>Issue New Token (Add Patient)</strong></legend>
+        <legend><strong>Counter Controls</strong></legend>
+        <button type="button" class="btn-success" onclick="callNextPatient()">Call Next Patient</button>
+        <div id="next-patient-result"></div>
+    </fieldset>
+
+    <!-- 3. ISSUE NEW TOKEN -->
+    <fieldset>
+        <legend><strong>Issue New Token (Register Patient)</strong></legend>
         <form id="patient-form" onsubmit="event.preventDefault(); addPatient(false);">
-            <label for="name">Name:</label>
-            <input type="text" id="name" required placeholder="e.g. John Doe">
-
-            <label for="age">Age:</label>
-            <input type="number" id="age" min="1" max="120" required placeholder="1 - 120">
-
-            <label for="ailment">Ailment / Service Reason:</label>
-            <input type="text" id="ailment" required placeholder="e.g. Fever">
-
-            <label for="gender">Gender:</label>
-            <select id="gender" required>
-                <option value="">-- Select --</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-            </select>
-
-            <button type="submit">Add to Queue (Normal)</button>
-            <button type="button" onclick="addPatient(true)">Add Emergency (Jump to Front)</button>
+            <div class="form-grid">
+                <div>
+                    <label for="name">Patient Name:</label>
+                    <input type="text" id="name" required placeholder="e.g. John Doe">
+                </div>
+                <div>
+                    <label for="age">Age:</label>
+                    <input type="number" id="age" min="1" max="120" required placeholder="1 - 120">
+                </div>
+                <div>
+                    <label for="ailment">Ailment / Reason:</label>
+                    <input type="text" id="ailment" required placeholder="e.g. Fever">
+                </div>
+                <div>
+                    <label for="gender">Gender:</label>
+                    <select id="gender" required>
+                        <option value="">-- Select --</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+            <div class="button-row">
+                <button type="submit">Add to Queue (Normal)</button>
+                <button type="button" class="btn-danger" onclick="addPatient(true)">Add Emergency (Jump to Front)</button>
+            </div>
         </form>
         <p id="add-feedback"></p>
     </fieldset>
 
-    <!-- 3. CHECK TOKEN STATUS OR CANCEL TOKEN -->
+    <!-- 4. CHECK TOKEN STATUS / CANCEL -->
     <fieldset>
         <legend><strong>Check Token Status / Cancel Token</strong></legend>
-        <label for="token-input">Enter Token Number:</label>
-        <input type="number" id="token-input" min="1" placeholder="e.g. 1">
-        <button type="button" onclick="checkTokenStatus()">Check Status</button>
-        <button type="button" onclick="cancelTokenFromInput()">Cancel Token</button>
+        <div class="inline-bar">
+            <label for="token-input">Token #:</label>
+            <input type="number" id="token-input" min="1" placeholder="e.g. 1">
+            <button type="button" onclick="checkTokenStatus()">Check Status</button>
+            <button type="button" class="btn-danger" onclick="cancelTokenFromInput()">Cancel Token</button>
+        </div>
         <div id="status-result"></div>
     </fieldset>
 
-    <!-- 4. ADMIN / DOCTOR CONTROLS -->
-    <fieldset>
-        <legend><strong>Counter / Doctor Controls</strong></legend>
-        <button type="button" onclick="callNextPatient()">Call Next Patient</button>
-        <div id="next-patient-result"></div>
-    </fieldset>
-
-    <!-- 5. LIVE WAITING QUEUE TABLE -->
+    <!-- 5. CURRENT WAITING QUEUE TABLE -->
     <fieldset>
         <legend><strong>Current Waiting Queue (<span id="queue-count">0</span>)</strong></legend>
+        <input type="text" id="queue-search" placeholder="Search waiting queue by name or token #..." oninput="renderQueueTable()">
         <p id="empty-queue-msg">The queue is currently empty.</p>
-        <table id="queue-table" hidden>
-            <thead>
-                <tr>
-                    <th>Position</th>
-                    <th>Token #</th>
-                    <th>Name</th>
-                    <th>Age</th>
-                    <th>Gender</th>
-                    <th>Ailment</th>
-                    <th>Time of Entry</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="queue-tbody"></tbody>
-        </table>
+
+        <div class="table-wrapper">
+            <table id="queue-table" hidden>
+                <thead>
+                    <tr>
+                        <th>Pos</th>
+                        <th>Token</th>
+                        <th>Name</th>
+                        <th>Age</th>
+                        <th>Gender</th>
+                        <th>Ailment</th>
+                        <th>Entry Time</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="queue-tbody"></tbody>
+            </table>
+        </div>
     </fieldset>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
