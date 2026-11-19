@@ -1,5 +1,8 @@
 import pandas as pd 
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+# FIX: Force IST (UTC+5:30) so Render's UTC server displays correct local time
+IST = timezone(timedelta(hours=5, minutes=30))
 
 
 # Creating a Queue class for the entire queuing system
@@ -9,17 +12,16 @@ class PatientQueue:
         self.df = pd.DataFrame(columns=['Token Number','Name','Age','Ailment','Time of entry','Gender'])
         #mannual token counter
         self.token_counter = 1 
-        # ADDED: Track currently serving token, completed/cancelled tokens, and wait times for status & stats
+        # ADDED: Track currently serving token and completed/cancelled tokens for status & stats
         self.current_serving = None
         self.served_tokens = []
         self.cancelled_tokens = []
-        self.wait_times = []
 
     #Function to add a patient at the end of the list 
     def add(self, name, age, ailment, gender):
         #time of arrival
-        # FIX: Added %Y-%m-%d date format so duration math doesn't default to year 1900
-        time = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
+        # FIX: Added %Y-%m-%d date format and IST so duration math doesn't default to year 1900 or UTC
+        time = datetime.now(IST).strftime("%Y-%m-%d %I:%M:%S %p")
         token_assigned = self.token_counter
         #details of the new patient as a new line for the dataframe 
         new_line = pd.DataFrame([{
@@ -66,9 +68,9 @@ class PatientQueue:
             self.df = self.df.drop(0).reset_index(drop=True)
 
             #converting string time to datetime object
-            # FIX: Parse full date + time to match updated entry format
-            entry_dt = datetime.strptime(entry_time_str, "%Y-%m-%d %I:%M:%S %p")
-            exit_dt = datetime.now()
+            # FIX: Parse full date + time with IST timezone to match entry format
+            entry_dt = datetime.strptime(entry_time_str, "%Y-%m-%d %I:%M:%S %p").replace(tzinfo=IST)
+            exit_dt = datetime.now(IST)
             # FIX: Renamed 'exit' to 'exit_str' to avoid shadowing Python's built-in exit()
             exit_str = exit_dt.strftime("%Y-%m-%d %I:%M:%S %p")
             #finding duration of stay 
@@ -81,7 +83,6 @@ class PatientQueue:
             if self.current_serving is not None:
                 self.served_tokens.append(self.current_serving['token_number'])
             self.current_serving = {'token_number': patient_token, 'name': patient_name}
-            self.wait_times.append(total_time)
 
             #printing exit summary 
             print("Patient Details:")
@@ -107,7 +108,7 @@ class PatientQueue:
 
     # --- NEW ESSENTIAL & UNIQUE FUNCTIONS ---
 
-    # Essential: Lets a user check their token status, queue position, and estimated wait time
+    # Essential: Lets a user check their token status and queue position
     def check_status(self, token_number):
         current_token = self.current_serving['token_number'] if self.current_serving else None
         matches = self.df[self.df['Token Number'] == token_number]
@@ -115,22 +116,14 @@ class PatientQueue:
         if not matches.empty:
             position = int(matches.index[0]) + 1
             people_ahead = position - 1
-            # Use real average wait time if available (> 0s), else default to 5 mins per person
-            avg_sec = (sum(self.wait_times) / len(self.wait_times)) if self.wait_times else 0
-            est_wait_mins = round((people_ahead * (avg_sec if avg_sec > 0 else 300)) / 60, 1)
-
-            print(f"Token {token_number}: Waiting at position {position} ({people_ahead} ahead). "
-                  f"Est. wait: ~{est_wait_mins} min(s). Currently serving: {current_token}")
             return {
                 'token_number': token_number,
                 'status': 'Waiting',
                 'position_in_queue': position,
                 'people_ahead': people_ahead,
-                'estimated_wait_mins': est_wait_mins,
                 'currently_serving': current_token
             }
         elif current_token == token_number:
-            print(f"Token {token_number}: Currently being served!")
             return {
                 'token_number': token_number,
                 'status': 'Currently Serving',
@@ -138,7 +131,6 @@ class PatientQueue:
                 'currently_serving': current_token
             }
         elif token_number in self.served_tokens:
-            print(f"Token {token_number}: Already served.")
             return {
                 'token_number': token_number,
                 'status': 'Served',
@@ -146,7 +138,6 @@ class PatientQueue:
                 'currently_serving': current_token
             }
         elif token_number in self.cancelled_tokens:
-            print(f"Token {token_number}: Cancelled.")
             return {
                 'token_number': token_number,
                 'status': 'Cancelled',
@@ -154,7 +145,6 @@ class PatientQueue:
                 'currently_serving': current_token
             }
         else:
-            print(f"Token {token_number}: Not found.")
             return {
                 'token_number': token_number,
                 'status': 'Invalid Token',
@@ -164,7 +154,7 @@ class PatientQueue:
 
     # Unique: Priority / Emergency insertion that places a critical patient at the front of the queue
     def add_emergency(self, name, age, ailment, gender):
-        time = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
+        time = datetime.now(IST).strftime("%Y-%m-%d %I:%M:%S %p")
         token_assigned = self.token_counter
         new_line = pd.DataFrame([{
             'Token Number': token_assigned,
@@ -182,7 +172,6 @@ class PatientQueue:
             self.df = pd.concat([new_line, self.df], ignore_index=True)
 
         self.token_counter += 1
-        print(f"EMERGENCY Token {token_assigned} issued to {name} (moved to front of queue).")
         return {
             'token_number': token_assigned,
             'name': name,
@@ -195,53 +184,18 @@ class PatientQueue:
     def cancel_token(self, token_number):
         matches = self.df[self.df['Token Number'] == token_number]
         if matches.empty:
-            print(f"Cannot cancel: Token {token_number} is not in the waiting queue.")
             return None
 
         patient_name = matches.iloc[0]['Name']
         self.df = self.df[self.df['Token Number'] != token_number].reset_index(drop=True)
         self.cancelled_tokens.append(int(token_number))
-        print(f"Token {token_number} ({patient_name}) has been cancelled.")
         return {'token_number': int(token_number), 'name': patient_name, 'status': 'Cancelled'}
 
     # Essential (Admin Dashboard): Returns live queue metrics
     def queue_stats(self):
-        avg_wait_sec = round(sum(self.wait_times) / len(self.wait_times), 1) if self.wait_times else 0.0
-        stats = {
+        return {
             'currently_serving': self.current_serving,
             'waiting_count': len(self.df),
             'served_count': len(self.served_tokens) + (1 if self.current_serving else 0),
-            'cancelled_count': len(self.cancelled_tokens),
-            'average_wait_seconds': avg_wait_sec
+            'cancelled_count': len(self.cancelled_tokens)
         }
-        print(f"Queue Stats: {stats}")
-        return stats
-
-
-#testingg
-# FIX: Guarded test code so importing PatientQueue in Flask won't auto-run tests
-if __name__ == "__main__":
-    queue = PatientQueue()
-    queue.add("John Doe", 42, "Fever", "Male")
-    queue.add("Jane Smith", 28, "Cough", "Female")
-    queue.add("Arjun Verma", 35, "Migraine", "Male")
-
-    # Test unique emergency insertion (Token 4 jumps to position 1)
-    queue.add_emergency("Meera Nair", 60, "Chest Pain", "Female")
-    queue.show()
-
-    # Test status check before & after calling next patient
-    queue.check_status(2)
-    queue.remove()          # Calls Meera (Token 4)
-    queue.check_status(4)   # Currently Serving
-    queue.check_status(2)   # Position updated
-
-    # Test cancellation
-    queue.cancel_token(3)
-    queue.check_status(3)   # Cancelled
-
-    # Test removing again (verifies KeyError: 0 is fixed)
-    queue.remove()          # Calls John (Token 1), Meera moves to Served
-    queue.check_status(4)   # Served
-    queue.queue_stats()
-    queue.show()
