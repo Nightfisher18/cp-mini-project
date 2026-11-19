@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Queue &amp; Token Management System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Queue &amp; Token Management System</h1>
+    <button type="button" onclick="refreshAll()">Refresh Data</button>
+    <hr>
+
+    <!-- 1. LIVE STATS & CURRENTLY SERVING -->
+    <fieldset>
+        <legend><strong>Live Queue Dashboard</strong></legend>
+        <p><strong>Currently Serving:</strong> <span id="stat-serving">None</span></p>
+        <ul>
+            <li>Waiting in Queue: <strong id="stat-waiting">0</strong></li>
+            <li>Total Served: <strong id="stat-served">0</strong></li>
+            <li>Total Cancelled: <strong id="stat-cancelled">0</strong></li>
+            <li>Average Wait Time: <strong id="stat-avg-wait">0</strong> seconds</li>
+        </ul>
+    </fieldset>
+
+    <!-- 2. ISSUE NEW TOKEN (NORMAL OR EMERGENCY) -->
+    <fieldset>
+        <legend><strong>Issue New Token (Add Patient)</strong></legend>
+        <form id="patient-form" onsubmit="event.preventDefault(); addPatient(false);">
+            <label for="name">Name:</label>
+            <input type="text" id="name" required placeholder="e.g. John Doe">
+
+            <label for="age">Age:</label>
+            <input type="number" id="age" min="1" max="120" required placeholder="1 - 120">
+
+            <label for="ailment">Ailment / Service Reason:</label>
+            <input type="text" id="ailment" required placeholder="e.g. Fever">
+
+            <label for="gender">Gender:</label>
+            <select id="gender" required>
+                <option value="">-- Select --</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+            </select>
+
+            <button type="submit">Add to Queue (Normal)</button>
+            <button type="button" onclick="addPatient(true)">Add Emergency (Jump to Front)</button>
+        </form>
+        <p id="add-feedback"></p>
+    </fieldset>
+
+    <!-- 3. CHECK TOKEN STATUS OR CANCEL TOKEN -->
+    <fieldset>
+        <legend><strong>Check Token Status / Cancel Token</strong></legend>
+        <label for="token-input">Enter Token Number:</label>
+        <input type="number" id="token-input" min="1" placeholder="e.g. 1">
+        <button type="button" onclick="checkTokenStatus()">Check Status</button>
+        <button type="button" onclick="cancelTokenFromInput()">Cancel Token</button>
+        <div id="status-result"></div>
+    </fieldset>
+
+    <!-- 4. ADMIN / DOCTOR CONTROLS -->
+    <fieldset>
+        <legend><strong>Counter / Doctor Controls</strong></legend>
+        <button type="button" onclick="callNextPatient()">Call Next Patient</button>
+        <div id="next-patient-result"></div>
+    </fieldset>
+
+    <!-- 5. LIVE WAITING QUEUE TABLE -->
+    <fieldset>
+        <legend><strong>Current Waiting Queue (<span id="queue-count">0</span>)</strong></legend>
+        <p id="empty-queue-msg">The queue is currently empty.</p>
+        <table id="queue-table" hidden>
+            <thead>
+                <tr>
+                    <th>Position</th>
+                    <th>Token #</th>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Gender</th>
+                    <th>Ailment</th>
+                    <th>Time of Entry</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="queue-tbody"></tbody>
+        </table>
+    </fieldset>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

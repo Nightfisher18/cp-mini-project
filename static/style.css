@@ -1,0 +1,405 @@
+/* Optional clean font (falls back smoothly to system fonts if offline) */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* Warm Honey-Yellow & Light-Orange Theme Variables */
+:root {
+    --bg-top: #fff9e6;
+    --bg-bottom: #fff3d6;
+    --card: #ffffff;
+    --surface-warm: #fffaf0;
+    --text: #3b2614;
+    --heading: #29180b;
+    --muted: #8a6a4b;
+    --border: #f2dab5;
+    --border-strong: #e8c38e;
+
+    /* Primary Warm Orange / Golden Amber */
+    --primary: #ea8c1d;
+    --primary-dark: #d9730d;
+    --primary-soft: #fef0c7;
+    --primary-text: #9a4408;
+
+    /* Semantic Colors (harmonized with warm palette) */
+    --danger: #dc2626;
+    --danger-dark: #b91c1c;
+    --danger-soft: #fee2e2;
+    --success: #15803d;
+    --success-dark: #166534;
+    --success-soft: #dcfce7;
+
+    --radius: 14px;
+    --shadow-sm: 0 2px 8px rgba(180, 105, 14, 0.06);
+    --shadow-md: 0 8px 24px rgba(180, 105, 14, 0.09);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/* Guarantee HTML 'hidden' attribute always works */
+[hidden] {
+    display: none !important;
+}
+
+body {
+    font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background:
+        radial-gradient(circle at 12% 8%, rgba(253, 214, 118, 0.45), transparent 42%),
+        radial-gradient(circle at 90% 15%, rgba(251, 176, 98, 0.30), transparent 38%),
+        linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+    background-attachment: fixed;
+    color: var(--text);
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 36px 22px 70px;
+    line-height: 1.55;
+    min-height: 100vh;
+}
+
+/* Header & Top Refresh Button */
+h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0 0 14px;
+    background: linear-gradient(120deg, #b45309 0%, #ea580c 60%, #f59e0b 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+hr {
+    border: none;
+    height: 2px;
+    background: linear-gradient(90deg, #f59e0b 0%, #fde68a 55%, transparent 100%);
+    margin: 18px 0 28px;
+    border-radius: 2px;
+}
+
+/* Cards (Fieldsets) */
+fieldset {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 26px 22px;
+    margin: 0 0 24px;
+    box-shadow: var(--shadow-md);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+fieldset:hover {
+    border-color: var(--border-strong);
+}
+
+/* Pill-Styled Card Legends */
+legend {
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--primary-text);
+    background: linear-gradient(135deg, #fff4cc 0%, #fde4b4 100%);
+    border: 1px solid var(--border-strong);
+    padding: 5px 14px;
+    border-radius: 999px;
+    box-shadow: var(--shadow-sm);
+}
+
+/* 1. Live Stats Dashboard */
+fieldset > p {
+    margin: 4px 0 6px;
+    font-size: 0.98rem;
+}
+
+#stat-serving {
+    display: inline-block;
+    background: linear-gradient(135deg, #fef08a 0%, #fed7aa 100%);
+    color: #9a3412;
+    border: 1px solid #f59e0b;
+    font-weight: 700;
+    padding: 5px 15px;
+    border-radius: 999px;
+    margin-left: 8px;
+    box-shadow: 0 2px 6px rgba(245, 158, 11, 0.22);
+}
+
+fieldset ul {
+    list-style: none;
+    padding: 0;
+    margin: 16px 0 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+    gap: 14px;
+}
+
+fieldset ul li {
+    background: linear-gradient(180deg, #fffdf7 0%, #fff6e0 100%);
+    border: 1px solid var(--border);
+    border-top: 3px solid #f59e0b;
+    border-radius: 11px;
+    padding: 14px 16px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+fieldset ul li:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+fieldset ul li strong {
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: var(--heading);
+    line-height: 1.1;
+}
+
+/* 2. Patient Form Layout */
+#patient-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px 18px;
+    margin-top: 4px;
+}
+
+#patient-form label {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: -4px;
+}
+
+/* Sleek 2-column form layout on tablets & laptops */
+@media (min-width: 640px) {
+    #patient-form {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    #patient-form label[for="name"]    { grid-column: 1; grid-row: 1; }
+    #patient-form #name                { grid-column: 1; grid-row: 2; }
+    #patient-form label[for="age"]     { grid-column: 2; grid-row: 1; }
+    #patient-form #age                 { grid-column: 2; grid-row: 2; }
+
+    #patient-form label[for="ailment"] { grid-column: 1; grid-row: 3; margin-top: 6px; }
+    #patient-form #ailment             { grid-column: 1; grid-row: 4; }
+    #patient-form label[for="gender"]  { grid-column: 2; grid-row: 3; margin-top: 6px; }
+    #patient-form #gender              { grid-column: 2; grid-row: 4; }
+
+    #patient-form button[type="submit"] { grid-column: 1; grid-row: 5; margin-top: 8px; }
+    #patient-form button[type="button"] { grid-column: 2; grid-row: 5; margin-top: 8px; }
+}
+
+/* Inputs & Select Dropdowns */
+input,
+select {
+    font-family: inherit;
+    font-size: 0.94rem;
+    padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    background: #fffdf9;
+    color: var(--text);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+input::placeholder {
+    color: #bfa181;
+}
+
+input:focus,
+select:focus {
+    outline: none;
+    background: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3.5px rgba(245, 158, 11, 0.22);
+}
+
+#patient-form input,
+#patient-form select {
+    width: 100%;
+}
+
+/* 3. Token Lookup Bar */
+label[for="token-input"] {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--muted);
+}
+
+#token-input {
+    width: 160px;
+    margin: 0 10px 8px 8px;
+}
+
+/* Buttons */
+button {
+    font-family: inherit;
+    font-size: 0.92rem;
+    font-weight: 700;
+    padding: 11px 18px;
+    border: none;
+    border-radius: 9px;
+    cursor: pointer;
+    background: linear-gradient(135deg, #f59e0b 0%, #ea7c1d 100%);
+    color: #ffffff;
+    box-shadow: 0 3px 10px rgba(234, 124, 29, 0.28);
+    transition: transform 0.12s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+button:hover {
+    filter: brightness(1.04);
+    transform: translateY(-1px);
+    box-shadow: 0 5px 14px rgba(234, 124, 29, 0.36);
+}
+
+button:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 6px rgba(234, 124, 29, 0.25);
+}
+
+/* Top Refresh Data Button (Warm Cream Outline) */
+body > button {
+    background: #ffffff;
+    color: var(--primary-text);
+    border: 1.5px solid var(--border-strong);
+    box-shadow: var(--shadow-sm);
+    padding: 9px 16px;
+}
+
+body > button:hover {
+    background: var(--primary-soft);
+    box-shadow: 0 4px 10px rgba(217, 119, 6, 0.15);
+}
+
+/* Emergency & Cancel Buttons (Distinct Crimson Red) */
+#patient-form button[type="button"],
+button[onclick="cancelTokenFromInput()"] {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    box-shadow: 0 3px 10px rgba(220, 38, 38, 0.25);
+}
+
+#patient-form button[type="button"]:hover,
+button[onclick="cancelTokenFromInput()"]:hover {
+    box-shadow: 0 5px 14px rgba(220, 38, 38, 0.35);
+}
+
+/* Call Next Patient Button (Fresh Emerald Green) */
+button[onclick="callNextPatient()"] {
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+    font-size: 1rem;
+    padding: 12px 24px;
+    box-shadow: 0 4px 12px rgba(21, 128, 61, 0.28);
+}
+
+button[onclick="callNextPatient()"]:hover {
+    box-shadow: 0 6px 16px rgba(21, 128, 61, 0.36);
+}
+
+/* Feedback & Result Callout Boxes */
+#add-feedback:not(:empty),
+#status-result:not(:empty),
+#next-patient-result:not(:empty) {
+    margin-top: 16px;
+    padding: 13px 16px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-left: 4px solid var(--primary);
+    border-radius: 9px;
+    font-size: 0.93rem;
+    color: var(--heading);
+    animation: fadeSlide 0.2s ease-out;
+}
+
+#next-patient-result:not(:empty) {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+    border-left-color: var(--success);
+}
+
+#status-result p,
+#next-patient-result p {
+    margin: 0;
+}
+
+@keyframes fadeSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 5. Live Waiting Queue Table */
+#empty-queue-msg {
+    color: var(--muted);
+    font-style: italic;
+    text-align: center;
+    padding: 18px 0 8px;
+    margin: 0;
+}
+
+#queue-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--border);
+    margin-top: 12px;
+    font-size: 0.92rem;
+    border-radius: 11px;
+    overflow: hidden;
+}
+
+#queue-table th {
+    background: linear-gradient(180deg, #fff4cc 0%, #fde8b2 100%);
+    color: var(--primary-text);
+    font-weight: 700;
+    font-size: 0.83rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1.5px solid var(--border-strong);
+}
+
+#queue-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #f7ebd4;
+    background: #ffffff;
+}
+
+#queue-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+#queue-table tbody tr:nth-child(even) td {
+    background: #fffcf5;
+}
+
+#queue-table tbody tr:hover td {
+    background: #fef6df;
+}
+
+/* Compact Red Cancel Button Inside Table Rows */
+#queue-table tbody button {
+    background: var(--danger-soft);
+    color: var(--danger);
+    border: 1px solid #fecaca;
+    box-shadow: none;
+    padding: 6px 12px;
+    font-size: 0.82rem;
+    border-radius: 7px;
+}
+
+#queue-table tbody button:hover {
+    background: var(--danger);
+    color: #ffffff;
+    border-color: var(--danger);
+    box-shadow: 0 3px 8px rgba(220, 38, 38, 0.25);
+}
